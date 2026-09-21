@@ -11,6 +11,7 @@
     <title>Material Requisition Form | Gladex Dynamic Resorces Ltd.</title>
 
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 
 <body>
@@ -372,6 +373,12 @@
 
 </div>
     <script src="script.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.registration
+            ("serviceWorker.js");
+        }
+    </script>
 
 </body>
 
