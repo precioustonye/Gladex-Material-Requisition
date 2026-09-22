@@ -195,6 +195,7 @@ function openNewRequisition() {
 
     resetMaterialRows();
     resetApprovalRows();
+    resetSignatures();
     calculateTotal();
     setSaveMode(false);
 
@@ -252,12 +253,13 @@ function getFormData() {
     });
 
     const approvalRows = document.querySelectorAll(".approval-table tbody tr");
-    const approvals = Array.from(approvalRows).map(function(row) {
+    const approvalSignatureIds = ["requested", "reviewed", "approved"];
+    const approvals = Array.from(approvalRows).map(function(row, index) {
         const inputs = row.querySelectorAll("input");
         return {
             name: inputs[0]?.value.trim() || "",
             date: inputs[1]?.value.trim() || "",
-            sign: inputs[2]?.value.trim() || ""
+            sign: document.getElementById("signature-" + approvalSignatureIds[index])?.getAttribute("src") || ""
         };
     });
 
@@ -272,6 +274,7 @@ function getFormData() {
         materials,
         total: document.getElementById("grandTotal").textContent,
         approvals,
+        signatures: getCurrentFormSignatures(),
         dateSaved: new Date().toLocaleString()
     };
 }
@@ -439,11 +442,15 @@ function loadRequisition(index) {
         const row = document.querySelectorAll(".approval-table tbody tr")[index];
         if (!row) return;
         const inputs = row.querySelectorAll("input");
-        inputs[0].value = a.name || "";
-        inputs[1].value = a.date || "";
-        inputs[2].value = a.sign || "";
+        if (inputs[0]) inputs[0].value = a.name || "";
+        if (inputs[1]) inputs[1].value = a.date || "";
     });
 
+    restoreFormSignatures(r.signatures || {
+        requested: r.approvals?.[0]?.sign || "",
+        reviewed: r.approvals?.[1]?.sign || "",
+        approved: r.approvals?.[2]?.sign || ""
+    });
     calculateTotal();
     setupDateInputs();
 
@@ -496,11 +503,408 @@ function deleteRequisition(index) {
     showMessage("Requisition deleted successfully.");
 }
 
+
+// ======================================
+// SIGNATURE SYSTEM
+// ======================================
+
+let activeSignatureId = null;
+let signatureDrawing = false;
+let signatureCanvasContext = null;
+let signatureCanvas = null;
+
+const SIGNATURE_STORAGE_KEY = "gladexSavedSignatures";
+
+function getSavedSignatures() {
+    try {
+        return JSON.parse(localStorage.getItem(SIGNATURE_STORAGE_KEY)) || [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function setSavedSignatures(signatures) {
+    localStorage.setItem(SIGNATURE_STORAGE_KEY, JSON.stringify(signatures));
+}
+
+function resizeSignatureCanvas() {
+    if (!signatureCanvas) return;
+
+    const rect = signatureCanvas.getBoundingClientRect();
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+
+    signatureCanvas.width = Math.round(rect.width * ratio);
+    signatureCanvas.height = Math.round(rect.height * ratio);
+
+    signatureCanvasContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+    signatureCanvasContext.lineWidth = 2;
+    signatureCanvasContext.lineCap = "round";
+    signatureCanvasContext.lineJoin = "round";
+    signatureCanvasContext.strokeStyle = "#111";
+}
+
+function getCanvasPoint(event) {
+    const rect = signatureCanvas.getBoundingClientRect();
+
+    return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+    };
+}
+
+function startSignatureDrawing(event) {
+    if (!signatureCanvasContext) return;
+
+    event.preventDefault();
+    signatureDrawing = true;
+
+    const point = getCanvasPoint(event);
+
+    signatureCanvasContext.beginPath();
+    signatureCanvasContext.moveTo(point.x, point.y);
+
+    if (signatureCanvas.setPointerCapture) {
+        try {
+            signatureCanvas.setPointerCapture(event.pointerId);
+        } catch (error) {
+            // Pointer capture is optional.
+        }
+    }
+}
+
+function drawSignature(event) {
+    if (!signatureDrawing || !signatureCanvasContext) return;
+
+    event.preventDefault();
+
+    const point = getCanvasPoint(event);
+    signatureCanvasContext.lineTo(point.x, point.y);
+    signatureCanvasContext.stroke();
+}
+
+function stopSignatureDrawing(event) {
+    if (!signatureDrawing) return;
+
+    event.preventDefault();
+    signatureDrawing = false;
+
+    if (signatureCanvas && signatureCanvas.releasePointerCapture) {
+        try {
+            signatureCanvas.releasePointerCapture(event.pointerId);
+        } catch (error) {
+            // Pointer capture is optional.
+        }
+    }
+}
+
+function clearSignaturePad() {
+    if (!signatureCanvas || !signatureCanvasContext) return;
+
+    const rect = signatureCanvas.getBoundingClientRect();
+
+    signatureCanvasContext.clearRect(0, 0, rect.width, rect.height);
+}
+
+function openSignaturePad(signatureId) {
+    activeSignatureId = signatureId;
+
+    const modal = document.getElementById("signatureModal");
+    const title = document.getElementById("signatureModalTitle");
+
+    if (!modal || !title) return;
+
+    const titles = {
+        requested: "Sign — Requested By",
+        reviewed: "Sign — Reviewed By (Procurement)",
+        approved: "Sign — Approved By (Head of Dept.)"
+    };
+
+    title.textContent = titles[signatureId] || "Add Signature";
+
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+
+    document.body.classList.add("signature-modal-open");
+
+    requestAnimationFrame(function() {
+        if (!signatureCanvas) {
+            signatureCanvas = document.getElementById("signatureCanvas");
+            if (signatureCanvas) {
+                signatureCanvasContext = signatureCanvas.getContext("2d");
+            }
+        }
+
+        resizeSignatureCanvas();
+        clearSignaturePad();
+        renderRecentSignatures();
+
+        const panel = document.getElementById("recentSignaturesPanel");
+        if (panel) panel.hidden = true;
+    });
+}
+
+function closeSignaturePad() {
+    const modal = document.getElementById("signatureModal");
+
+    if (modal) {
+        modal.classList.remove("open");
+        modal.setAttribute("aria-hidden", "true");
+    }
+
+    document.body.classList.remove("signature-modal-open");
+    activeSignatureId = null;
+    signatureDrawing = false;
+}
+
+function isCanvasBlank() {
+    if (!signatureCanvas || !signatureCanvasContext) return true;
+
+    const pixelData = signatureCanvasContext.getImageData(
+        0,
+        0,
+        signatureCanvas.width,
+        signatureCanvas.height
+    ).data;
+
+    for (let i = 3; i < pixelData.length; i += 4) {
+        if (pixelData[i] !== 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function askSignatureName() {
+    let name = prompt("Enter a name for this saved signature:");
+
+    if (name === null) return null;
+
+    name = name.trim();
+
+    if (!name) {
+        showMessage("Please enter a name for the signature.", "error");
+        return null;
+    }
+
+    return name.slice(0, 60);
+}
+
+function saveDrawnSignature() {
+    if (!activeSignatureId || !signatureCanvas) return;
+
+    if (isCanvasBlank()) {
+        showMessage("Please draw a signature first.", "error");
+        return;
+    }
+
+    const name = askSignatureName();
+    if (!name) return;
+
+    const dataUrl = signatureCanvas.toDataURL("image/png");
+
+    const signatures = getSavedSignatures();
+
+    signatures.unshift({
+        id: Date.now().toString(),
+        name: name,
+        dataUrl: dataUrl
+    });
+
+    // Keep the most recent 20 named signatures.
+    setSavedSignatures(signatures.slice(0, 20));
+
+    applySignatureToBox(activeSignatureId, dataUrl);
+
+    closeSignaturePad();
+    showMessage('Signature "' + name + '" saved and added to the form.');
+}
+
+function applySignatureToBox(signatureId, dataUrl) {
+    const box = document.querySelector('.signature-box[data-signature-id="' + signatureId + '"]');
+    const image = document.getElementById("signature-" + signatureId);
+
+    if (!box || !image) return;
+
+    if (dataUrl) {
+        image.src = dataUrl;
+        image.style.display = "block";
+        box.classList.add("has-signature");
+    } else {
+        image.removeAttribute("src");
+        image.style.display = "none";
+        box.classList.remove("has-signature");
+    }
+}
+
+function getCurrentFormSignatures() {
+    function getSignature(signatureId) {
+        const box = document.querySelector('.signature-box[data-signature-id="' + signatureId + '"]');
+        const image = document.getElementById("signature-" + signatureId);
+
+        if (!box || !image || !box.classList.contains("has-signature")) {
+            return "";
+        }
+
+        return image.getAttribute("src") || "";
+    }
+
+    return {
+        requested: getSignature("requested"),
+        reviewed: getSignature("reviewed"),
+        approved: getSignature("approved")
+    };
+}
+
+function resetSignatures() {
+    ["requested", "reviewed", "approved"].forEach(function(signatureId) {
+        applySignatureToBox(signatureId, "");
+    });
+}
+
+function restoreFormSignatures(signatures) {
+    const data = signatures || {};
+
+    applySignatureToBox("requested", data.requested || "");
+    applySignatureToBox("reviewed", data.reviewed || "");
+    applySignatureToBox("approved", data.approved || "");
+}
+
+function toggleRecentSignatures() {
+    const panel = document.getElementById("recentSignaturesPanel");
+    if (!panel) return;
+
+    panel.hidden = !panel.hidden;
+
+    if (!panel.hidden) {
+        renderRecentSignatures();
+    }
+}
+
+function renderRecentSignatures() {
+    const list = document.getElementById("recentSignaturesList");
+    if (!list) return;
+
+    const signatures = getSavedSignatures();
+
+    list.innerHTML = "";
+
+    if (signatures.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "no-signatures";
+        empty.textContent = "No saved signatures yet.";
+        list.appendChild(empty);
+        return;
+    }
+
+    signatures.forEach(function(signature) {
+        const item = document.createElement("div");
+        item.className = "recent-signature-item";
+
+        const useButton = document.createElement("button");
+        useButton.type = "button";
+        useButton.className = "recent-signature-use";
+        useButton.title = "Use " + signature.name;
+
+        const preview = document.createElement("img");
+        preview.className = "recent-signature-preview";
+        preview.src = signature.dataUrl;
+        preview.alt = signature.name;
+
+        const name = document.createElement("span");
+        name.className = "recent-signature-name";
+        name.textContent = signature.name;
+
+        useButton.append(preview, name);
+
+        useButton.onclick = function() {
+            if (!activeSignatureId) return;
+
+            applySignatureToBox(activeSignatureId, signature.dataUrl);
+            closeSignaturePad();
+            showMessage('Saved signature "' + signature.name + '" added to the form.');
+        };
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "delete-saved-signature";
+        deleteButton.textContent = "Delete";
+        deleteButton.title = "Delete " + signature.name;
+
+        deleteButton.onclick = function() {
+            if (!confirm('Delete saved signature "' + signature.name + '"?')) {
+                return;
+            }
+
+            const remaining = getSavedSignatures().filter(function(item) {
+                return item.id !== signature.id;
+            });
+
+            setSavedSignatures(remaining);
+            renderRecentSignatures();
+            showMessage('Saved signature "' + signature.name + '" deleted.', "info");
+        };
+
+        item.append(useButton, deleteButton);
+        list.appendChild(item);
+    });
+}
+
+window.addEventListener("beforeprint", function() {
+    closeSignaturePad();
+});
+
+function initializeSignatureSystem() {
+    signatureCanvas = document.getElementById("signatureCanvas");
+
+    if (!signatureCanvas) return;
+
+    signatureCanvasContext = signatureCanvas.getContext("2d");
+
+    signatureCanvas.addEventListener("pointerdown", startSignatureDrawing);
+    signatureCanvas.addEventListener("pointermove", drawSignature);
+    signatureCanvas.addEventListener("pointerup", stopSignatureDrawing);
+    signatureCanvas.addEventListener("pointercancel", stopSignatureDrawing);
+    signatureCanvas.addEventListener("pointerleave", stopSignatureDrawing);
+
+    window.addEventListener("resize", function() {
+        const modal = document.getElementById("signatureModal");
+        if (modal && modal.classList.contains("open")) {
+            // Do not resize while actively drawing because canvas resizing clears it.
+            if (!signatureDrawing) {
+                resizeSignatureCanvas();
+            }
+        }
+    });
+
+    const modal = document.getElementById("signatureModal");
+
+    if (modal) {
+        modal.addEventListener("click", function(event) {
+            if (event.target === modal) {
+                closeSignaturePad();
+            }
+        });
+    }
+
+    document.addEventListener("keydown", function(event) {
+        if (event.key === "Escape") {
+            const currentModal = document.getElementById("signatureModal");
+
+            if (currentModal && currentModal.classList.contains("open")) {
+                closeSignaturePad();
+            }
+        }
+    });
+}
+
+
 // ======================================
 // STARTUP
 // ======================================
 
 document.addEventListener("DOMContentLoaded", function() {
+    initializeSignatureSystem();
     setupDateInputs();
 
     document.querySelectorAll(".quantity-input, .cost-input").forEach(function(input) {

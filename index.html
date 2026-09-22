@@ -11,7 +11,6 @@
     <title>Material Requisition Form | Gladex Dynamic Resorces Ltd.</title>
 
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
 </head>
 
 <body>
@@ -285,7 +284,10 @@
                         <input type="text" class="date-input" placeholder="DD/MM/YYYY" maxlength="10" inputmode="numeric">
                     </td>
                     <td>
-                        <input type="text">
+                        <button type="button" class="signature-box" data-signature-id="requested" onclick="openSignaturePad('requested')">
+                            <span class="signature-placeholder">Tap to Sign</span>
+                            <img class="signature-image" id="signature-requested" alt="Requested By signature">
+                        </button>
                     </td>
                 </tr>
 
@@ -298,7 +300,10 @@
                         <input type="text" class="date-input" placeholder="DD/MM/YYYY" maxlength="10" inputmode="numeric">
                     </td>
                     <td>
-                        <input type="text">
+                        <button type="button" class="signature-box" data-signature-id="reviewed" onclick="openSignaturePad('reviewed')">
+                            <span class="signature-placeholder">Tap to Sign</span>
+                            <img class="signature-image" id="signature-reviewed" alt="Reviewed By signature">
+                        </button>
                     </td>
                 </tr>
 
@@ -311,7 +316,10 @@
                         <input type="text" class="date-input" placeholder="DD/MM/YYYY" maxlength="10" inputmode="numeric">
                     </td>
                     <td>
-                        <input type="text">
+                        <button type="button" class="signature-box" data-signature-id="approved" onclick="openSignaturePad('approved')">
+                            <span class="signature-placeholder">Tap to Sign</span>
+                            <img class="signature-image" id="signature-approved" alt="Approved By signature">
+                        </button>
                     </td>
                 </tr>
 
@@ -338,6 +346,46 @@
 
 </div>
            
+        </div>
+
+
+        <!-- SIGNATURE PAD MODAL -->
+        <div id="signatureModal" class="signature-modal" aria-hidden="true">
+            <div class="signature-modal-content" role="dialog" aria-modal="true" aria-labelledby="signatureModalTitle">
+                <button type="button" class="signature-close" onclick="closeSignaturePad()" aria-label="Close signature window">
+                    &times;
+                </button>
+
+                <h2 id="signatureModalTitle">Add Signature</h2>
+                <p class="signature-instruction">Draw your signature below using your finger or mouse.</p>
+
+                <div class="signature-canvas-wrap">
+                    <canvas id="signatureCanvas"></canvas>
+                </div>
+
+                <div class="signature-actions">
+                    <button type="button" class="signature-action secondary" onclick="clearSignaturePad()">
+                        Clear
+                    </button>
+                    <button type="button" class="signature-action" onclick="saveDrawnSignature()">
+                        Save Signature
+                    </button>
+                </div>
+
+                <button type="button" class="recent-signatures-button" onclick="toggleRecentSignatures()">
+                    Recent Signatures
+                </button>
+
+                <div id="recentSignaturesPanel" class="recent-signatures-panel" hidden>
+                    <div class="recent-signatures-header">
+                        <strong>Saved Signatures</strong>
+                        <span>Tap one to use it</span>
+                    </div>
+                    <div id="recentSignaturesList" class="recent-signatures-list">
+                        <p class="no-signatures">No saved signatures yet.</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- SAVED REQUISITIONS -->
@@ -373,12 +421,6 @@
 
 </div>
     <script src="script.js"></script>
-    <script>
-        if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.registration
-            ("serviceWorker.js");
-        }
-    </script>
 
 </body>
 
