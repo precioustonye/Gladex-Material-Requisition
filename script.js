@@ -616,7 +616,7 @@ function openSignaturePad(signatureId) {
     const titles = {
         requested: "Sign — Requested By",
         reviewed: "Sign — Reviewed By (Procurement)",
-        approved: "Sign — Approved By (Head of Dept.)"
+        approved: "Sign — Approved By (Account)"
     };
 
     title.textContent = titles[signatureId] || "Add Signature";
