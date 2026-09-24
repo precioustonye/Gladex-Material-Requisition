@@ -4,6 +4,7 @@
 // ======================================
 
 let editingIndex = null;
+let selectedPrintIndexes = new Set();
 
 // ======================================
 // DATE: DD/MM/YYYY
@@ -331,6 +332,43 @@ function cancelEdit() {
 // DISPLAY SAVED REQUISITIONS
 // ======================================
 
+function updatePrintSelectionUI() {
+    const count = selectedPrintIndexes.size;
+    const button = document.getElementById("printSelectedButton");
+    const status = document.getElementById("printSelectionStatus");
+
+    if (button) {
+        button.textContent = "Print Selected (" + count + "/2)";
+        button.disabled = count !== 2;
+    }
+
+    if (status) {
+        if (count === 0) {
+            status.textContent = "Select 2 requisitions to print together.";
+        } else if (count === 1) {
+            status.textContent = "1 requisition selected. Select 1 more.";
+        } else {
+            status.textContent = "2 requisitions selected. Ready to print.";
+        }
+    }
+}
+
+function togglePrintSelection(index, checked) {
+    if (checked) {
+        if (selectedPrintIndexes.size >= 2) {
+            const checkbox = document.querySelector('.print-select-checkbox[data-index="' + index + '"]');
+            if (checkbox) checkbox.checked = false;
+            showMessage("You can select only 2 requisitions for one A4 print.", "info");
+            return;
+        }
+        selectedPrintIndexes.add(index);
+    } else {
+        selectedPrintIndexes.delete(index);
+    }
+
+    updatePrintSelectionUI();
+}
+
 function displayRequisitions() {
     const list = document.getElementById("requisitionList");
     if (!list) return;
@@ -340,6 +378,13 @@ function displayRequisitions() {
     const requisitions = JSON.parse(localStorage.getItem("requisitions")) || [];
 
     list.innerHTML = "";
+
+    // Remove selections that no longer exist.
+    selectedPrintIndexes.forEach(function(index) {
+        if (!requisitions[index]) {
+            selectedPrintIndexes.delete(index);
+        }
+    });
 
     const filtered = requisitions.map(function(requisition, index) {
         return { requisition, index };
@@ -362,16 +407,29 @@ function displayRequisitions() {
     if (filtered.length === 0) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = 3;
+        cell.colSpan = 4;
         cell.textContent = searchTerm ? "No matching requisitions found." : "No saved requisitions found.";
         row.appendChild(cell);
         list.appendChild(row);
+        updatePrintSelectionUI();
         return;
     }
 
     filtered.forEach(function(item) {
         const r = item.requisition;
         const row = document.createElement("tr");
+
+        const selectCell = document.createElement("td");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "print-select-checkbox";
+        checkbox.dataset.index = item.index;
+        checkbox.checked = selectedPrintIndexes.has(item.index);
+        checkbox.setAttribute("aria-label", "Select " + (r.requisitionNumber || "requisition") + " for two-form printing");
+        checkbox.onchange = function() {
+            togglePrintSelection(item.index, checkbox.checked);
+        };
+        selectCell.appendChild(checkbox);
 
         const noCell = document.createElement("td");
         noCell.textContent = r.requisitionNumber || "";
@@ -398,9 +456,127 @@ function displayRequisitions() {
         deleteButton.onclick = () => deleteRequisition(item.index);
 
         actionCell.append(viewButton, editButton, deleteButton);
-        row.append(noCell, dateCell, actionCell);
+        row.append(selectCell, noCell, dateCell, actionCell);
         list.appendChild(row);
     });
+
+    updatePrintSelectionUI();
+}
+
+// ======================================
+// PRINT TWO SAVED REQUISITIONS TOGETHER
+// ======================================
+
+function setPrintCloneInput(clone, selector, value) {
+    const input = clone.querySelector(selector);
+    if (input) input.value = value || "";
+}
+
+function populatePrintClone(clone, requisition) {
+    const r = requisition || {};
+
+    setPrintCloneInput(clone, '.left-info .info-row:nth-child(1) input', r.dateOfRequest);
+    setPrintCloneInput(clone, '.left-info .info-row:nth-child(2) input', r.requestedBy);
+    setPrintCloneInput(clone, '.left-info .info-row:nth-child(3) input', r.projectTitle);
+    setPrintCloneInput(clone, '.right-info .info-row:nth-child(1) input', r.client);
+    setPrintCloneInput(clone, '#requisitionNumber', r.requisitionNumber);
+    setPrintCloneInput(clone, '.right-info .info-row:nth-child(3) input', r.department);
+    setPrintCloneInput(clone, '.right-info .info-row:nth-child(4) input', r.projectJobNo);
+
+    const materialRows = clone.querySelectorAll("#materialRows tr");
+    const materials = r.materials || [];
+
+    materialRows.forEach(function(row, index) {
+        const material = materials[index] || {};
+        const materialInput = row.querySelector(".material");
+        const quantityInput = row.querySelector(".quantity-input");
+        const costInput = row.querySelector(".cost-input");
+        const amountCell = row.querySelector(".amount-cell");
+        const remarksInput = row.querySelector(".remarks");
+
+        if (materialInput) materialInput.value = material.material || "";
+        if (quantityInput) quantityInput.value = material.quantity ?? "0";
+        if (costInput) costInput.value = material.unitCost ?? "";
+        if (amountCell) amountCell.textContent = material.amount || "0.00";
+        if (remarksInput) remarksInput.value = material.remarks || "";
+    });
+
+    const total = clone.querySelector("#grandTotal");
+    if (total) total.textContent = r.total || "0.00";
+
+    const approvalRows = clone.querySelectorAll(".approval-table tbody tr");
+    const approvals = r.approvals || [];
+    const signatures = r.signatures || {};
+    const signatureIds = ["requested", "reviewed", "approved"];
+
+    approvalRows.forEach(function(row, index) {
+        const approval = approvals[index] || {};
+        const inputs = row.querySelectorAll("input");
+        if (inputs[0]) inputs[0].value = approval.name || "";
+        if (inputs[1]) inputs[1].value = approval.date || "";
+
+        const image = row.querySelector(".signature-image");
+        const box = row.querySelector(".signature-box");
+        const signature = signatures[signatureIds[index]] || approval.sign || "";
+
+        if (image && box) {
+            if (signature) {
+                image.src = signature;
+                box.classList.add("has-signature");
+            } else {
+                image.removeAttribute("src");
+                box.classList.remove("has-signature");
+            }
+        }
+    });
+
+    // Remove duplicate IDs from the cloned copy to keep the print DOM clean.
+    clone.removeAttribute("id");
+    clone.querySelectorAll("[id]").forEach(function(element) {
+        element.removeAttribute("id");
+    });
+}
+
+function printSelectedRequisitions() {
+    if (selectedPrintIndexes.size !== 2) {
+        showMessage("Select exactly 2 saved requisitions to print together.", "info");
+        return;
+    }
+
+    const requisitions = JSON.parse(localStorage.getItem("requisitions")) || [];
+    const selected = Array.from(selectedPrintIndexes).map(function(index) {
+        return requisitions[index];
+    });
+
+    if (selected.length !== 2 || selected.some(function(item) { return !item; })) {
+        showMessage("One of the selected requisitions could not be found.", "error");
+        return;
+    }
+
+    const sheet = document.getElementById("multiPrintSheet");
+    const sourcePage = document.getElementById("requisitionForm");
+
+    if (!sheet || !sourcePage) {
+        showMessage("The two-form print area could not be prepared.", "error");
+        return;
+    }
+
+    sheet.innerHTML = "";
+
+    selected.forEach(function(requisition) {
+        const copy = document.createElement("div");
+        copy.className = "multi-print-copy";
+
+        const page = sourcePage.cloneNode(true);
+        page.classList.add("multi-print-page");
+        populatePrintClone(page, requisition);
+
+        copy.appendChild(page);
+        sheet.appendChild(copy);
+    });
+
+    document.body.classList.add("multi-print-active");
+    window.print();
 }
 
 // ======================================
@@ -492,6 +668,15 @@ function deleteRequisition(index) {
     }
 
     requisitions.splice(index, 1);
+
+    // Keep the two-print selection in sync after a saved requisition is deleted.
+    const updatedSelection = new Set();
+    selectedPrintIndexes.forEach(function(selectedIndex) {
+        if (selectedIndex === index) return;
+        updatedSelection.add(selectedIndex > index ? selectedIndex - 1 : selectedIndex);
+    });
+    selectedPrintIndexes = updatedSelection;
+
     localStorage.setItem("requisitions", JSON.stringify(requisitions));
 
     if (editingIndex === index) {
@@ -616,7 +801,7 @@ function openSignaturePad(signatureId) {
     const titles = {
         requested: "Sign — Requested By",
         reviewed: "Sign — Reviewed By (Procurement)",
-        approved: "Sign — Approved By (Account)"
+        approved: "Sign — Approved By (Head of Dept.)"
     };
 
     title.textContent = titles[signatureId] || "Add Signature";
@@ -852,6 +1037,10 @@ function renderRecentSignatures() {
 
 window.addEventListener("beforeprint", function() {
     closeSignaturePad();
+});
+
+window.addEventListener("afterprint", function() {
+    document.body.classList.remove("multi-print-active");
 });
 
 function initializeSignatureSystem() {

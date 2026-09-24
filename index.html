@@ -395,18 +395,26 @@
     <h2>Saved Requisitions</h2>
 
     <div class="requisition-search">
-    <input
-        type="text"
-        id="searchRequisition"
-        placeholder="Search by requisition no., name, project, department or date..."
-        oninput="displayRequisitions()"
-    >
-</div>
+        <input
+            type="text"
+            id="searchRequisition"
+            placeholder="Search by requisition no., name, project, department or date..."
+            oninput="displayRequisitions()"
+        >
+    </div>
+
+    <div class="multi-print-controls">
+        <span id="printSelectionStatus">Select 2 requisitions to print together.</span>
+        <button type="button" id="printSelectedButton" onclick="printSelectedRequisitions()" disabled>
+            Print Selected (0/2)
+        </button>
+    </div>
 
     <table class="requisition-list">
 
         <thead>
             <tr>
+                <th>Select</th>
                 <th>Requisition No.</th>
                 <th>Date Saved</th>
                 <th>Action</th>
@@ -420,6 +428,9 @@
     </table>
 
 </div>
+
+<!-- PRINT SHEET FOR TWO SAVED REQUISITIONS -->
+<div id="multiPrintSheet" aria-hidden="true"></div>
     <script src="script.js"></script>
 
 </body>
