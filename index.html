@@ -45,56 +45,55 @@
         </div>
 
         <!-- GENERAL INFORMATION -->
-        <div class="info-section">
+        <div class="table-scroll info-scroll">
+        <table class="info-table">
+            <tbody>
+                <tr>
+                    <td class="info-label">Date of request:</td>
+                    <td class="info-input">
+                        <input type="text" class="date-input" placeholder="DD/MM/YYYY" maxlength="10" inputmode="numeric" data-field="dateOfRequest">
+                    </td>
+                    <td class="info-label">Client:</td>
+                    <td class="info-input">
+                        <input type="text" data-field="client">
+                    </td>
+                </tr>
 
-            <div class="left-info">
+                <tr>
+                    <td class="info-label">Requested By (Name):</td>
+                    <td class="info-input">
+                        <input type="text" data-field="requestedBy">
+                    </td>
+                    <td class="info-label">Requisition No.:</td>
+                    <td class="info-input">
+                        <input
+                        type="text"
+                        id="requisitionNumber"
+                        data-field="requisitionNumber"
+                        value="GDRL-PL-MRF-2026"
+                        >
+                    </td>
+                </tr>
 
-                <div class="info-row">
-                    <label>Date of request:</label>
-                    <input type="text" class="date-input" placeholder="DD/MM/YYYY" maxlength="10" inputmode="numeric">
-                </div>
+                <tr>
+                    <td class="info-label" rowspan="2">Project Title:</td>
+                    <td class="info-input project-title-cell" rowspan="2">
+                        <input type="text" data-field="projectTitle">
+                    </td>
+                    <td class="info-label">Department:</td>
+                    <td class="info-input">
+                        <input type="text" data-field="department">
+                    </td>
+                </tr>
 
-                <div class="info-row">
-                    <label>Requested By (Name):</label>
-                    <input type="text">
-                </div>
-
-                <div class="info-row">
-                    <label>Project Title:</label>
-                    <input type="text">
-                </div>
-
-            </div>
-
-           
-            <div class="right-info">
-
-                <div class="info-row">
-                    <label>Client:</label>
-                    <input type="text">
-                </div>
-
-                <div class="info-row">
-                    <label>Requisition No.:</label>
-                    <input 
-                    type="text" 
-                    id="requisitionNumber"
-                    value="GDRL-PL-MRF-2026" 
-                    >
-                </div>
-
-                <div class="info-row">
-                    <label>Department:</label>
-                    <input type="text">
-                </div>
-
-                <div class="info-row">
-                    <label>Project/Job No.:</label>
-                    <input type="text">
-                </div>
-
-            </div>
-
+                <tr>
+                    <td class="info-label">Project/Job No.:</td>
+                    <td class="info-input">
+                        <input type="text" data-field="projectJobNo">
+                    </td>
+                </tr>
+            </tbody>
+        </table>
         </div>
 
 
@@ -213,25 +212,6 @@
                     <td><input type="text" class="remarks"></td>
                 </tr>
 
-
-                <tr>
-                    <td>7</td>
-                    <td><input type="text" class="material"></td>
-                    <td><input type="number" class="quantity-input" min="0" value="0"></td>
-                    <td><input type="number" class="cost-input"></td>
-                    <td class="amount-cell">0.00</td>
-                    <td><input type="text" class="remarks"></td>
-                </tr>
-
-
-                <tr>
-                    <td>8</td>
-                    <td><input type="text" class="material"></td>
-                    <td><input type="number" class="quantity-input" min="0" value="0"></td>
-                    <td><input type="number" class="cost-input"></td>
-                    <td class="amount-cell">0.00</td>
-                    <td><input type="text" class="remarks"></td>
-                </tr>
 
             </tbody>
 

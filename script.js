@@ -100,10 +100,10 @@ function showMessage(message, type = "success") {
 function validateRequisition() {
     const form = document.getElementById("requisitionForm");
 
-    const dateOfRequest = form.querySelector('.left-info .info-row:nth-child(1) input').value.trim();
-    const requestedBy = form.querySelector('.left-info .info-row:nth-child(2) input').value.trim();
-    const projectTitle = form.querySelector('.left-info .info-row:nth-child(3) input').value.trim();
-    const department = form.querySelector('.right-info .info-row:nth-child(3) input').value.trim();
+    const dateOfRequest = form.querySelector('[data-field="dateOfRequest"]').value.trim();
+    const requestedBy = form.querySelector('[data-field="requestedBy"]').value.trim();
+    const projectTitle = form.querySelector('[data-field="projectTitle"]').value.trim();
+    const department = form.querySelector('[data-field="department"]').value.trim();
 
     if (!dateOfRequest) {
         showMessage("Please enter the Date of Request.", "error");
@@ -231,13 +231,13 @@ function resetApprovalRows() {
 function getFormData() {
     const form = document.getElementById("requisitionForm");
 
-    const dateOfRequest = form.querySelector('.left-info .info-row:nth-child(1) input').value.trim();
-    const requestedBy = form.querySelector('.left-info .info-row:nth-child(2) input').value.trim();
-    const projectTitle = form.querySelector('.left-info .info-row:nth-child(3) input').value.trim();
-    const client = form.querySelector('.right-info .info-row:nth-child(1) input').value.trim();
+    const dateOfRequest = form.querySelector('[data-field="dateOfRequest"]').value.trim();
+    const requestedBy = form.querySelector('[data-field="requestedBy"]').value.trim();
+    const projectTitle = form.querySelector('[data-field="projectTitle"]').value.trim();
+    const client = form.querySelector('[data-field="client"]').value.trim();
     const requisitionNumber = document.getElementById("requisitionNumber").value.trim();
-    const department = form.querySelector('.right-info .info-row:nth-child(3) input').value.trim();
-    const projectJobNo = form.querySelector('.right-info .info-row:nth-child(4) input').value.trim();
+    const department = form.querySelector('[data-field="department"]').value.trim();
+    const projectJobNo = form.querySelector('[data-field="projectJobNo"]').value.trim();
 
     const materials = [];
 
@@ -475,13 +475,13 @@ function setPrintCloneInput(clone, selector, value) {
 function populatePrintClone(clone, requisition) {
     const r = requisition || {};
 
-    setPrintCloneInput(clone, '.left-info .info-row:nth-child(1) input', r.dateOfRequest);
-    setPrintCloneInput(clone, '.left-info .info-row:nth-child(2) input', r.requestedBy);
-    setPrintCloneInput(clone, '.left-info .info-row:nth-child(3) input', r.projectTitle);
-    setPrintCloneInput(clone, '.right-info .info-row:nth-child(1) input', r.client);
+    setPrintCloneInput(clone, '[data-field="dateOfRequest"]', r.dateOfRequest);
+    setPrintCloneInput(clone, '[data-field="requestedBy"]', r.requestedBy);
+    setPrintCloneInput(clone, '[data-field="projectTitle"]', r.projectTitle);
+    setPrintCloneInput(clone, '[data-field="client"]', r.client);
     setPrintCloneInput(clone, '#requisitionNumber', r.requisitionNumber);
-    setPrintCloneInput(clone, '.right-info .info-row:nth-child(3) input', r.department);
-    setPrintCloneInput(clone, '.right-info .info-row:nth-child(4) input', r.projectJobNo);
+    setPrintCloneInput(clone, '[data-field="department"]', r.department);
+    setPrintCloneInput(clone, '[data-field="projectJobNo"]', r.projectJobNo);
 
     const materialRows = clone.querySelectorAll("#materialRows tr");
     const materials = r.materials || [];
@@ -594,13 +594,13 @@ function loadRequisition(index) {
 
     const form = document.getElementById("requisitionForm");
 
-    form.querySelector('.left-info .info-row:nth-child(1) input').value = r.dateOfRequest || "";
-    form.querySelector('.left-info .info-row:nth-child(2) input').value = r.requestedBy || "";
-    form.querySelector('.left-info .info-row:nth-child(3) input').value = r.projectTitle || "";
-    form.querySelector('.right-info .info-row:nth-child(1) input').value = r.client || "";
+    form.querySelector('[data-field="dateOfRequest"]').value = r.dateOfRequest || "";
+    form.querySelector('[data-field="requestedBy"]').value = r.requestedBy || "";
+    form.querySelector('[data-field="projectTitle"]').value = r.projectTitle || "";
+    form.querySelector('[data-field="client"]').value = r.client || "";
     document.getElementById("requisitionNumber").value = r.requisitionNumber || "";
-    form.querySelector('.right-info .info-row:nth-child(3) input').value = r.department || "";
-    form.querySelector('.right-info .info-row:nth-child(4) input').value = r.projectJobNo || "";
+    form.querySelector('[data-field="department"]').value = r.department || "";
+    form.querySelector('[data-field="projectJobNo"]').value = r.projectJobNo || "";
 
     resetMaterialRows();
 

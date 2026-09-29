@@ -126,33 +126,34 @@ body {
 
 /* INFORMATION SECTION */
 
-.info-section {
-    display: grid;
-    grid-template-columns: 55% 45%;
+.info-table {
+    width: 100%;
+    min-width: 700px;
+
+    border-collapse: collapse;
+    table-layout: fixed;
 
     border-left: 1px solid #777;
     border-right: 1px solid #777;
     border-bottom: 1px solid #777;
 }
 
-.left-info {
-    border-right: 1px solid #777;
-}
-
-.info-row {
-    display: grid;
-    grid-template-columns: 150px 1fr;
-
-    min-height: 30px;
-
+.info-table td {
+    vertical-align: top;
     border-bottom: 1px solid #aaa;
 }
 
-.info-row:last-child {
+.info-table tr:last-child td {
     border-bottom: none;
 }
 
-.info-row label {
+.info-table td:last-child {
+    border-right: none;
+}
+
+.info-label {
+    width: 150px;
+
     padding: 7px;
 
     font-size: 11px;
@@ -161,15 +162,33 @@ body {
     border-right: 1px solid #aaa;
 }
 
-.info-row input {
+.info-input {
+    padding: 0;
+
+    border-right: 1px solid #777;
+}
+
+.info-input input {
+    display: block;
     width: 100%;
+    height: 100%;
+    min-height: 30px;
 
     border: none;
     outline: none;
 
-    padding: 5px;
+    padding: 7px;
 
     font-size: 12px;
+    font-family: inherit;
+
+    background: transparent;
+    box-sizing: border-box;
+}
+
+/* PROJECT TITLE - taller, clearly separated block */
+.project-title-cell input {
+    min-height: 70px;
 }
 
 
@@ -408,23 +427,6 @@ body {
 
 .dashboard-button button:hover {
     background: #555;
-}
-/* PROJECT TITLE - FULL HEIGHT DIVIDER */
-
-.left-info .info-row:nth-child(3) {
-    min-height: 90px;
-    display: grid;
-    grid-template-columns: 150px 1fr;
-}
-
-.left-info .info-row:nth-child(3) label {
-    border-right: 1px solid #aaa;
-    height: auto;
-}
-
-.left-info .info-row:nth-child(3) input {
-    height: auto;
-    width: 100%;
 }
 /* ======================================
    SAVED REQUISITIONS
@@ -719,24 +721,13 @@ body {
 
     .document-info p { margin: 5px 0; }
 
-    .info-section {
-        grid-template-columns: 1fr;
-    }
-
-    .left-info {
-        border-right: none;
-    }
-
-    .info-row {
-        grid-template-columns: 125px 1fr;
-    }
-
-    .info-row label {
+    .info-label {
+        width: 125px;
         font-size: 10px;
         padding: 7px 5px;
     }
 
-    .info-row input {
+    .info-input input {
         font-size: 12px;
     }
 
@@ -795,8 +786,8 @@ body {
         margin-top: 6px;
     }
 
-    .info-row {
-        grid-template-columns: 110px 1fr;
+    .info-label {
+        width: 110px;
     }
 
     .section-title,
@@ -879,47 +870,64 @@ body {
     }
 
     .form-title h1 {
-        font-size: 18px;
+        font-size: 22px;
         margin: 0;
     }
 
     .document-info p {
         margin: 3px 0;
-        font-size: 9px;
+        font-size: 11px;
     }
 
-    .info-row label,
-    .info-row input,
+    .info-label,
+    .info-input input,
     .material-table th,
     .material-table td,
     .approval-table th,
     .approval-table td {
-        font-size: 9px;
+        font-size: 12px;
     }
 
-    .info-row label,
-    .info-row input {
-        padding-top: 4px;
-        padding-bottom: 4px;
+    .info-label,
+    .info-input input {
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+
+    .project-title-cell input {
+        min-height: 44px;
     }
 
     .section-title,
     .approval-title {
-        padding: 5px 7px;
-        font-size: 11px;
+        padding: 6px 7px;
+        font-size: 13px;
     }
 
     .material-table th,
     .material-table td,
     .approval-table th,
     .approval-table td {
-        padding: 4px;
+        padding: 5px;
+    }
+
+    .material-table th {
+        height: 34px;
+    }
+
+    .material-table tbody tr {
+        height: 28px;
+    }
+
+    .approval-table th,
+    .approval-table td {
+        height: 30px;
     }
 
     .material-table input,
     .approval-table input {
         padding: 3px;
-        font-size: 9px;
+        font-size: 12px;
     }
 
     .form-content::before {
@@ -1306,5 +1314,87 @@ body {
 
     .signature-box:not(.has-signature) .signature-image {
         display: none !important;
+    }
+}
+
+
+/* PRINT-ONLY READABILITY + CONTINUOUS BORDERS */
+@media print {
+    /* Keep these in sync with the sizes set above so the whole form,
+       including all three approval rows, reliably fits on one page. */
+    .form-title h1 {
+        font-size: 22px !important;
+    }
+
+    .document-info p {
+        font-size: 11px !important;
+    }
+
+    .info-label,
+    .info-input input,
+    .material-table th,
+    .material-table td,
+    .approval-table th,
+    .approval-table td {
+        font-size: 12px !important;
+    }
+
+    .section-title,
+    .approval-title {
+        font-size: 13px !important;
+    }
+
+    .material-table input,
+    .approval-table input {
+        font-size: 12px !important;
+    }
+
+    .signature-placeholder {
+        font-size: 12px !important;
+    }
+
+    /* Keep adjoining printed borders touching with no gaps */
+    .top-header,
+    .info-table,
+    .section-title,
+    .material-table,
+    .approval-title,
+    .approval-table {
+        margin: 0 !important;
+    }
+
+    .top-header {
+        border-collapse: collapse !important;
+    }
+
+    .material-table,
+    .approval-table,
+    .info-table {
+        border-collapse: collapse !important;
+        border-spacing: 0 !important;
+    }
+
+    .material-table th,
+    .material-table td,
+    .approval-table th,
+    .approval-table td {
+        border: 1px solid #888 !important;
+    }
+
+    .section-title,
+    .approval-title {
+        border-left: 1px solid #777 !important;
+        border-right: 1px solid #777 !important;
+        border-bottom: 1px solid #777 !important;
+    }
+
+    .approval-title {
+        border-top: 0 !important;
+    }
+
+    .info-table {
+        border-left: 1px solid #777 !important;
+        border-right: 1px solid #777 !important;
+        border-bottom: 1px solid #777 !important;
     }
 }
